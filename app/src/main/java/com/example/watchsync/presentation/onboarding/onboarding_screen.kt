@@ -1,5 +1,6 @@
 package com.example.watchsync.presentation.onboarding
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -15,12 +16,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -33,188 +36,284 @@ import com.example.watchsync.data.model.Watchable
 import com.example.watchsync.ui.theme.ElectricBlue
 import com.example.watchsync.ui.theme.NightBlue
 import com.example.watchsync.ui.theme.Turquoise
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
-private enum class SwipeDirection { None, Like, Dislike, Skip }
 
 @Composable
 fun OnboardingScreen(
     modifier: Modifier = Modifier,
     onComplete: (Map<String, Int>) -> Unit = {}
 ) {
-    // Veri listesini bir daha değişmeyecek şekilde hatırlıyoruz.
     val watchables = remember { FakeData.getOnboardingWatchables() }
-    // Değişken olan, sadece hangi kartın en üstte olduğu.
     var currentIndex by remember { mutableIntStateOf(0) }
     var ratings by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    
+    // Screen width'i px cinsinden hesapla
+    val screenWidthPx = remember(configuration) {
+        with(density) { configuration.screenWidthDp.dp.toPx() }
+    }
 
-    fun handleSwipe(action: SwipeDirection, watchable: Watchable) {
-        val rating = when (action) {
-            SwipeDirection.Dislike -> 1
-            SwipeDirection.Skip -> 0
-            SwipeDirection.Like -> 5
-            else -> -1
+    // Kart animasyon state'leri
+    val offsetX = remember { Animatable(0f) }
+    val rotation = remember { Animatable(0f) }
+    val alpha = remember { Animatable(1f) }
+
+    fun handleAction(liked: Boolean?, watchable: Watchable) {
+        if (isAnimating) return
+        
+        val rating = when (liked) {
+            true -> 5  // Beğendim
+            false -> 1 // Beğenmedim
+            null -> 0  // İzlemedim
         }
         if (rating > 0) {
             ratings = ratings + (watchable.id to rating)
         }
-        val nextIndex = currentIndex + 1
-        if (nextIndex >= watchables.size) {
-            onComplete(ratings)
-        } else {
-            currentIndex = nextIndex
+
+        isAnimating = true
+        val direction = when (liked) {
+            true -> 1f      // Sağa (BEĞEN)
+            false -> -1f    // Sola (GEÇ)
+            null -> 0f      // Yukarı (ATLA) - fade out
         }
-    }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(colors = listOf(NightBlue, Color(0xFF000000), Color(0xFF0A0A1A)))
-            )
-        )
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Zevklerini Oluştur",
-                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, fontWeight = FontWeight.Bold),
-                    color = Turquoise,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(
-                    text = "${currentIndex + 1} / ${watchables.size}",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-                    color = Color.White.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center
+        scope.launch {
+            if (direction != 0f) {
+                // GEÇ veya BEĞEN: Kart ekran dışına çıkarken dönerek kayar
+                val targetOffset = direction * screenWidthPx * 1.5f
+                val targetRotation = direction * 30f
+                
+                kotlinx.coroutines.coroutineScope {
+                    launch {
+                        offsetX.animateTo(
+                            targetValue = targetOffset,
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                    }
+                    launch {
+                        rotation.animateTo(
+                            targetValue = targetRotation,
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                    }
+                    launch {
+                        alpha.animateTo(
+                            targetValue = 0f,
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                    }
+                }
+            } else {
+                // ATLA: Sadece fade out
+                alpha.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 200)
                 )
             }
 
+            // Animasyon tamamlandıktan sonra bir sonraki karta geç
+            val nextIndex = currentIndex + 1
+            if (nextIndex >= watchables.size) {
+                onComplete(ratings)
+            } else {
+                currentIndex = nextIndex
+                // State'leri sıfırla
+                offsetX.snapTo(0f)
+                rotation.snapTo(0f)
+                alpha.snapTo(1f)
+                isAnimating = false
+            }
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(NightBlue, Color(0xFF000000), Color(0xFF0A0A1A))
+                )
+            )
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Üst Başlık ve İlerleme Çubuğu
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Zevk Serüveni",
+                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, fontWeight = FontWeight.Bold),
+                    color = Turquoise,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                // Animasyonlu ilerleme çubuğu
+                val progress by animateFloatAsState(
+                    targetValue = if (watchables.isNotEmpty()) {
+                        (currentIndex + 1).toFloat() / watchables.size.toFloat()
+                    } else {
+                        0f
+                    },
+                    animationSpec = tween(durationMillis = 500),
+                    label = "progress_animation"
+                )
+                
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Turquoise,
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
+            }
+
+            // Kart Alanı - Animasyonlu kart
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Sadece mevcut kartı çiziyoruz ve animasyonu ona uyguluyoruz.
-                // key, Compose'a bunun yeni bir kart olduğunu ve eskiyi unutması gerektiğini söyler.
-                key(currentIndex) {
+                if (currentIndex < watchables.size) {
                     val currentWatchable = watchables[currentIndex]
-                    MovieRatingCard(
-                        watchable = currentWatchable,
-                        onDislike = { handleSwipe(SwipeDirection.Dislike, currentWatchable) },
-                        onSkip = { handleSwipe(SwipeDirection.Skip, currentWatchable) },
-                        onLike = { handleSwipe(SwipeDirection.Like, currentWatchable) },
-                        modifier = Modifier.fillMaxWidth().height(600.dp)
-                    )
+                    key(currentWatchable.id) {
+                        AnimatedMovieRatingCard(
+                            watchable = currentWatchable,
+                            offsetX = offsetX,
+                            rotation = rotation,
+                            alpha = alpha,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+
+            // Buton Alanı
+            if (currentIndex < watchables.size) {
+                val currentWatchable = watchables[currentIndex]
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Beğenmedim (Kırmızı, X)
+                    Button(
+                        onClick = { handleAction(false, currentWatchable) },
+                        enabled = !isAnimating,
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935), contentColor = Color.White)
+                    ) {
+                        Icon(imageVector = Icons.Rounded.Close, contentDescription = "Beğenmedim", modifier = Modifier.size(36.dp))
+                    }
+
+                    // İzlemedim (Gri)
+                    Button(
+                        onClick = { handleAction(null, currentWatchable) },
+                        enabled = !isAnimating,
+                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.5f), contentColor = Color.White)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Rounded.Undo, contentDescription = "İzlemedim", modifier = Modifier.size(32.dp))
+                    }
+
+                    // Beğendim (Yeşil, Kalp)
+                    Button(
+                        onClick = { handleAction(true, currentWatchable) },
+                        enabled = !isAnimating,
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047), contentColor = Color.White)
+                    ) {
+                        Icon(imageVector = Icons.Rounded.Favorite, contentDescription = "Beğendim", modifier = Modifier.size(36.dp))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun MovieRatingCard(
+private fun AnimatedMovieRatingCard(
     watchable: Watchable,
-    onDislike: () -> Unit,
-    onSkip: () -> Unit,
-    onLike: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    offsetX: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    rotation: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    alpha: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    modifier: Modifier = Modifier
 ) {
-    Box(
+    val density = LocalDensity.current
+    
+    Column(
         modifier = modifier
-            .fillMaxWidth()
-            .background(color = Color.White.copy(alpha = 0.1f), shape = RoundedCornerShape(24.dp))
-            .padding(24.dp)
+            .offset {
+                IntOffset(
+                    x = with(density) { offsetX.value.toDp().toPx().roundToInt() },
+                    y = 0
+                )
+            }
+            .rotate(rotation.value)
+            .alpha(alpha.value),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+        // Poster
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(watchable.posterUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = watchable.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .aspectRatio(2f / 3f)
+                .clip(RoundedCornerShape(24.dp))
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Başlık ve Type
+        Text(
+            text = watchable.title,
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .background(
+                    color = if (watchable.type == "Film") Turquoise.copy(alpha = 0.3f) else ElectricBlue.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 6.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(color = Color.White.copy(alpha = 0.1f), shape = RoundedCornerShape(16.dp))
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(watchable.posterUrl).crossfade(true).build(),
-                    contentDescription = watchable.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(vertical = 16.dp)
-            ) {
-                Text(
-                    text = watchable.title,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = if (watchable.type == "Film") Turquoise.copy(alpha = 0.3f) else ElectricBlue.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = watchable.type,
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-                        color = if (watchable.type == "Film") Turquoise else ElectricBlue
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onDislike, enabled = enabled, modifier = Modifier.size(64.dp), shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4444), contentColor = Color.White)
-                ) {
-                    Icon(imageVector = Icons.Rounded.Close, contentDescription = "Beğenmedim", modifier = Modifier.size(32.dp))
-                }
-
-                Button(
-                    onClick = onSkip, enabled = enabled, modifier = Modifier.size(64.dp), shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.5f), contentColor = Color.White)
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Rounded.Undo, contentDescription = "İzlemedim", modifier = Modifier.size(32.dp))
-                }
-
-                Button(
-                    onClick = onLike, enabled = enabled, modifier = Modifier.size(64.dp), shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White)
-                ) {
-                    Icon(imageVector = Icons.Rounded.Favorite, contentDescription = "Beğendim", modifier = Modifier.size(32.dp))
-                }
-            }
+            Text(
+                text = watchable.type,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                color = if (watchable.type == "Film") Turquoise else ElectricBlue
+            )
         }
     }
 }

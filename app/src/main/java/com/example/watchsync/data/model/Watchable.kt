@@ -7,3 +7,4 @@ data class Watchable(
     val type: String // "Film" veya "Dizi"
 )
 
+

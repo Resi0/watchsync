@@ -21,6 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,26 +36,19 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.watchsync.data.FakeData
-import com.example.watchsync.data.model.User
+import com.example.watchsync.data.model.SuggestedProfile
 import com.example.watchsync.data.model.Watchable
 import com.example.watchsync.ui.theme.NightBlue
 import com.example.watchsync.ui.theme.Turquoise
-
-data class SuggestedProfile(
-    val user: User,
-    val age: Int,
-    val compatibilityPercentage: Int, // 0-100 arası uyum oranı
-    val commonWatchables: List<Watchable> // Ortak beğenilen filmler/diziler
-)
 
 @Composable
 fun MatchesScreen(
     onNavigateToProfile: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // FakeData'dan hazır önerilen profil listesini al
+    // FakeData'dan hazır önerilen profil listesini al ve değiştirilebilir yap
     val suggestedProfiles = remember {
-        FakeData.getSuggestedProfiles()
+        mutableStateListOf(*FakeData.getSuggestedProfiles().toTypedArray())
     }
 
     Box(
@@ -93,10 +87,10 @@ fun MatchesScreen(
                     ProfileCard(
                         profile = profile,
                         onLikeClick = {
-                            // TODO: Beğen işlemi
+                            suggestedProfiles.remove(profile)
                         },
                         onPassClick = {
-                            // TODO: Geç işlemi
+                            suggestedProfiles.remove(profile)
                         },
                         onProfileClick = {
                             onNavigateToProfile(profile.user.id)

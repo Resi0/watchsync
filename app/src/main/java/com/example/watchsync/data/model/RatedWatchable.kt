@@ -5,3 +5,4 @@ data class RatedWatchable(
     val rating: Int // 1-5 arası puan
 )
 
+
