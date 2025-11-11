@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.watchsync.data.FakeData
+import com.example.watchsync.data.model.RecommendedWatchable
 import com.example.watchsync.data.model.User
 import com.example.watchsync.data.model.Watchable
 import com.example.watchsync.ui.theme.ElectricBlue
@@ -52,11 +53,12 @@ import com.example.watchsync.ui.theme.WatchSyncTheme
 @Composable
 fun HomeScreen(
     onNavigateToProfile: (String) -> Unit = {},
+    ratings: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
-    // FakeData'dan sahte verileri al
-    val movieRecommendations = remember {
-        FakeData.getHomeScreenRecommendations()
+    // Kullanıcının oylarına göre önerileri al (uyumluluk yüzdesi ile)
+    val movieRecommendations = remember(ratings) {
+        FakeData.getRecommendationsBasedOnRatings(ratings)
     }
 
     val userProfiles = remember {
@@ -100,9 +102,9 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(movieRecommendations, key = { it.id }) { movie ->
+                        items(movieRecommendations, key = { it.watchable.id }) { recommendation ->
                             MoviePosterItem(
-                                movie = movie,
+                                recommendation = recommendation,
                                 onClick = {
                                     // TODO: Film detay sayfasına yönlendir
                                 }
@@ -153,7 +155,7 @@ fun HomeScreen(
 
 @Composable
 fun MoviePosterItem(
-    movie: Watchable,
+    recommendation: RecommendedWatchable,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -180,13 +182,34 @@ fun MoviePosterItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(movie.posterUrl)
+                .data(recommendation.watchable.posterUrl)
                 .crossfade(true)
                 .build(),
-            contentDescription = movie.title,
+            contentDescription = recommendation.watchable.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+        
+        // Uyumluluk yüzdesi - Sağ üst köşe (yeşil ve şeffaf)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(6.dp)
+                .background(
+                    color = Color(0xFF4CAF50).copy(alpha = 0.8f), // Yeşil ve şeffaf
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Text(
+                text = "${recommendation.compatibilityPercentage}%",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFF2E7D32) // Koyu yeşil yazı
+            )
+        }
     }
 }
 

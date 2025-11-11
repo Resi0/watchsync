@@ -42,6 +42,7 @@ import com.example.watchsync.ui.theme.Turquoise
 @Composable
 fun MainScreen(
     navController: NavHostController = rememberNavController(),
+    ratings: Map<String, Int> = emptyMap(),
     onNavigateToProfile: (String) -> Unit = {}
 ) {
     // Mevcut navigation state'i al
@@ -142,6 +143,7 @@ fun MainScreen(
             // Ana Sayfa ekranı
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
+                    ratings = ratings,
                     onNavigateToProfile = onNavigateToProfile
                 )
             }

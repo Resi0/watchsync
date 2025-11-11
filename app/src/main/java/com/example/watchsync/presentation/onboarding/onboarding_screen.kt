@@ -1,18 +1,43 @@
 package com.example.watchsync.presentation.onboarding
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -21,9 +46,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -44,209 +67,166 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
     onComplete: (Map<String, Int>) -> Unit = {}
 ) {
-    val watchables = remember { FakeData.getOnboardingWatchables() }
-    var currentIndex by remember { mutableIntStateOf(0) }
+    val levels = remember { FakeData.getOnboardingLevels() }
+    var currentLevelIndex by remember { mutableIntStateOf(0) }
+    var currentIndexInLevel by remember { mutableIntStateOf(0) }
     var ratings by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
-    var isAnimating by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    
-    // Screen width'i px cinsinden hesapla
-    val screenWidthPx = remember(configuration) {
-        with(density) { configuration.screenWidthDp.dp.toPx() }
-    }
 
-    // Kart animasyon state'leri
+    val currentWatchables = levels.getOrNull(currentLevelIndex) ?: emptyList()
+    val currentWatchable = currentWatchables.getOrNull(currentIndexInLevel)
+
     val offsetX = remember { Animatable(0f) }
     val rotation = remember { Animatable(0f) }
     val alpha = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+
+    // Kart değiştiğinde animasyonları sıfırla
+    LaunchedEffect(currentWatchable) {
+        if (currentWatchable != null) {
+            offsetX.snapTo(0f)
+            rotation.snapTo(0f)
+            alpha.snapTo(1f)
+        }
+    }
 
     fun handleAction(liked: Boolean?, watchable: Watchable) {
-        if (isAnimating) return
-        
-        val rating = when (liked) {
-            true -> 5  // Beğendim
-            false -> 1 // Beğenmedim
-            null -> 0  // İzlemedim
-        }
-        if (rating > 0) {
-            ratings = ratings + (watchable.id to rating)
-        }
-
-        isAnimating = true
-        val direction = when (liked) {
-            true -> 1f      // Sağa (BEĞEN)
-            false -> -1f    // Sola (GEÇ)
-            null -> 0f      // Yukarı (ATLA) - fade out
-        }
-
         scope.launch {
-            if (direction != 0f) {
-                // GEÇ veya BEĞEN: Kart ekran dışına çıkarken dönerek kayar
-                val targetOffset = direction * screenWidthPx * 1.5f
-                val targetRotation = direction * 30f
-                
-                kotlinx.coroutines.coroutineScope {
-                    launch {
-                        offsetX.animateTo(
-                            targetValue = targetOffset,
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                    }
-                    launch {
-                        rotation.animateTo(
-                            targetValue = targetRotation,
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                    }
-                    launch {
-                        alpha.animateTo(
-                            targetValue = 0f,
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                    }
-                }
-            } else {
-                // ATLA: Sadece fade out
-                alpha.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(durationMillis = 200)
-                )
+            // Rating'i kaydet
+            val rating = when (liked) {
+                true -> 5
+                false -> 1
+                null -> 0
+            }
+            if (rating > 0) {
+                ratings = ratings + (watchable.id to rating)
             }
 
-            // Animasyon tamamlandıktan sonra bir sonraki karta geç
-            val nextIndex = currentIndex + 1
-            if (nextIndex >= watchables.size) {
-                onComplete(ratings)
+            // Animasyonu başlat
+            launch { alpha.animateTo(0f, animationSpec = tween(300)) }
+            launch {
+                if (liked != null) {
+                    offsetX.animateTo(if (liked) 1000f else -1000f, animationSpec = tween(300))
+                    rotation.animateTo(if (liked) 20f else -20f, animationSpec = tween(300))
+                }
+            }
+
+            // Bir sonraki adıma geç
+            val nextIndex = currentIndexInLevel + 1
+            if (nextIndex >= currentWatchables.size) {
+                val nextLevel = currentLevelIndex + 1
+                if (nextLevel >= levels.size) {
+                    onComplete(ratings)
+                } else {
+                    currentLevelIndex = nextLevel
+                    currentIndexInLevel = 0
+                }
             } else {
-                currentIndex = nextIndex
-                // State'leri sıfırla
-                offsetX.snapTo(0f)
-                rotation.snapTo(0f)
-                alpha.snapTo(1f)
-                isAnimating = false
+                currentIndexInLevel = nextIndex
             }
         }
     }
 
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(NightBlue, Color(0xFF000000), Color(0xFF0A0A1A))
-                )
-            )
+        modifier = modifier.fillMaxSize().background(Brush.verticalGradient(listOf(NightBlue, Color.Black)))
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Üst Başlık ve İlerleme Çubuğu
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Üst Başlık ve Seviye Göstergesi
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Zevk Serüveni",
-                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, fontWeight = FontWeight.Bold),
-                    color = Turquoise,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Turquoise
                 )
-                
-                // Animasyonlu ilerleme çubuğu
-                val progress by animateFloatAsState(
-                    targetValue = if (watchables.isNotEmpty()) {
-                        (currentIndex + 1).toFloat() / watchables.size.toFloat()
-                    } else {
-                        0f
-                    },
-                    animationSpec = tween(durationMillis = 500),
-                    label = "progress_animation"
-                )
-                
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Turquoise,
-                    trackColor = Color.White.copy(alpha = 0.2f)
-                )
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Turquoise.copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, Turquoise.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = "Aşama ${currentLevelIndex + 1}/${levels.size}",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Turquoise,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
             }
 
-            // Kart Alanı - Animasyonlu kart
+            // İlerleme Çubuğu
+            LinearProgressIndicator(
+                progress = { (currentIndexInLevel.toFloat() + 1) / currentWatchables.size.toFloat() },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(8.dp).clip(RoundedCornerShape(4.dp)),
+                color = Turquoise,
+                trackColor = Color.White.copy(alpha = 0.2f)
+            )
+
+            // Kart Alanı
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                modifier = Modifier.weight(1f).padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (currentIndex < watchables.size) {
-                    val currentWatchable = watchables[currentIndex]
+                if (currentWatchable != null) {
                     key(currentWatchable.id) {
-                        AnimatedMovieRatingCard(
-                            watchable = currentWatchable,
-                            offsetX = offsetX,
-                            rotation = rotation,
-                            alpha = alpha,
-                            modifier = Modifier.fillMaxSize()
+                        MovieRatingCard(
+                            modifier = Modifier
+                                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                                .rotate(rotation.value)
+                                .alpha(alpha.value),
+                            watchable = currentWatchable
                         )
                     }
                 }
             }
 
             // Buton Alanı
-            if (currentIndex < watchables.size) {
-                val currentWatchable = watchables[currentIndex]
+            if (currentWatchable != null) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Beğenmedim (Kırmızı, X)
                     Button(
                         onClick = { handleAction(false, currentWatchable) },
-                        enabled = !isAnimating,
                         modifier = Modifier.size(72.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935), contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                     ) {
-                        Icon(imageVector = Icons.Rounded.Close, contentDescription = "Beğenmedim", modifier = Modifier.size(36.dp))
+                        Icon(Icons.Rounded.Close, null, modifier = Modifier.size(36.dp))
                     }
-
-                    // İzlemedim (Gri)
                     Button(
                         onClick = { handleAction(null, currentWatchable) },
-                        enabled = !isAnimating,
                         modifier = Modifier.size(64.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.5f), contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.5f))
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Rounded.Undo, contentDescription = "İzlemedim", modifier = Modifier.size(32.dp))
+                        Icon(Icons.AutoMirrored.Rounded.Undo, null, modifier = Modifier.size(32.dp))
                     }
-
-                    // Beğendim (Yeşil, Kalp)
                     Button(
                         onClick = { handleAction(true, currentWatchable) },
-                        enabled = !isAnimating,
                         modifier = Modifier.size(72.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047), contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))
                     ) {
-                        Icon(imageVector = Icons.Rounded.Favorite, contentDescription = "Beğendim", modifier = Modifier.size(36.dp))
+                        Icon(Icons.Rounded.Favorite, null, modifier = Modifier.size(36.dp))
                     }
+                }
+            } else {
+                Box(
+                    modifier = Modifier.weight(1f).padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Harika! Zevklerini öğrendik.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                 }
             }
         }
@@ -254,49 +234,34 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun AnimatedMovieRatingCard(
+private fun MovieRatingCard(
     watchable: Watchable,
-    offsetX: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    rotation: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    alpha: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-    
     Column(
-        modifier = modifier
-            .offset {
-                IntOffset(
-                    x = with(density) { offsetX.value.toDp().toPx().roundToInt() },
-                    y = 0
-                )
-            }
-            .rotate(rotation.value)
-            .alpha(alpha.value),
+        modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Poster
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(watchable.posterUrl)
                 .crossfade(true)
                 .build(),
             contentDescription = watchable.title,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(24.dp))
         )
-
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Başlık ve Type
         Text(
             text = watchable.title,
-            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            ),
             color = Color.White,
             textAlign = TextAlign.Center
         )
@@ -311,7 +276,10 @@ private fun AnimatedMovieRatingCard(
         ) {
             Text(
                 text = watchable.type,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
                 color = if (watchable.type == "Film") Turquoise else ElectricBlue
             )
         }

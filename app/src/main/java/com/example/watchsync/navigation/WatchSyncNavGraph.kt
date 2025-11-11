@@ -10,6 +10,9 @@ import com.example.watchsync.presentation.login.LoginScreen
 import com.example.watchsync.presentation.main.MainScreen
 import com.example.watchsync.presentation.onboarding.OnboardingScreen
 import com.example.watchsync.presentation.profile.OtherUserProfileScreen
+import org.json.JSONObject
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun WatchSyncNavGraph(navController: NavHostController) {
@@ -24,16 +27,35 @@ fun WatchSyncNavGraph(navController: NavHostController) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onComplete = { ratings ->
+                    // Ratings'i JSON string'e çevir ve URL encode et
+                    val ratingsJson = JSONObject(ratings).toString()
+                    val encodedRatings = URLEncoder.encode(ratingsJson, StandardCharsets.UTF_8.toString())
+                    
                     // Profil oluşturma tamamlandı, ana sayfaya git
-                    navController.navigate(Screen.Main.route) {
+                    // Ratings'i navigation argument olarak gönder
+                    navController.navigate("${Screen.Main.route}?ratings=$encodedRatings") {
                         // Onboarding ekranını geri yığınından kaldır
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
-        composable(Screen.Main.route) {
+        composable(
+            route = "${Screen.Main.route}?ratings={ratings}",
+            arguments = listOf(
+                navArgument("ratings") {
+                    type = NavType.StringType
+                    defaultValue = "{}"
+                }
+            )
+        ) { backStackEntry ->
+            // Navigation argument'tan (savedStateHandle'dan) ratings'i al
+            // Navigation Compose otomatik olarak URL decode yapar
+            val ratingsJson = backStackEntry.arguments?.getString("ratings") ?: "{}"
+            val ratings = parseRatingsFromJson(ratingsJson)
+            
             MainScreen(
+                ratings = ratings,
                 onNavigateToProfile = { userId ->
                     navController.navigate("user_profile/$userId")
                 }
@@ -58,5 +80,21 @@ fun WatchSyncNavGraph(navController: NavHostController) {
                 }
             )
         }
+    }
+}
+
+/**
+ * JSON string'den Map<String, Int> ratings'e çevirir
+ */
+private fun parseRatingsFromJson(jsonString: String): Map<String, Int> {
+    return try {
+        val jsonObject = JSONObject(jsonString)
+        val ratingsMap = mutableMapOf<String, Int>()
+        jsonObject.keys().forEach { key ->
+            ratingsMap[key] = jsonObject.getInt(key)
+        }
+        ratingsMap
+    } catch (e: Exception) {
+        emptyMap()
     }
 }
