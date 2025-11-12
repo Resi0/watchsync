@@ -1,11 +1,9 @@
 package com.example.watchsync.data.model
 
 /**
- * Önerilen film/dizi için uyumluluk yüzdesi ile birlikte Watchable nesnesi
+ * Ana sayfadaki öne çıkan içerik bölümünde gösterilecek bir öneriyi temsil eder.
  */
 data class RecommendedWatchable(
     val watchable: Watchable,
-    val compatibilityPercentage: Int // 0-100 arası uyumluluk yüzdesi
+    val reason: String // Örn: "Popüler olduğu için", "Arkadaşın beğendiği için"
 )
-
-

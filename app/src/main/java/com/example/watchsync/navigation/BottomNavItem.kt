@@ -1,8 +1,10 @@
 package com.example.watchsync.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -13,14 +15,26 @@ sealed class BottomNavItem(
 ) {
     object Home : BottomNavItem(
         route = "home",
-        title = "Ana Sayfa",
+        title = "Anasayfa",
         icon = Icons.Rounded.Home
+    )
+
+    object Explore : BottomNavItem(
+        route = "explore",
+        title = "Keşfet",
+        icon = Icons.Rounded.Explore
     )
 
     object Matches : BottomNavItem(
         route = "matches",
-        title = "Eşleşmeler",
-        icon = Icons.Rounded.People
+        title = "Eşleşme",
+        icon = Icons.Rounded.Favorite
+    )
+
+    object Notifications : BottomNavItem(
+        route = "notifications",
+        title = "Bildirimler",
+        icon = Icons.Rounded.Notifications
     )
 
     object Profile : BottomNavItem(
@@ -30,7 +44,7 @@ sealed class BottomNavItem(
     )
 
     companion object {
-        val items = listOf(Home, Matches, Profile)
+        val items = listOf(Home, Explore, Matches, Notifications, Profile)
     }
 }
 

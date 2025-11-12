@@ -1,11 +1,6 @@
 package com.example.watchsync.presentation.login
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,396 +16,253 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.watchsync.ui.theme.ElectricBlue
-import com.example.watchsync.ui.theme.NightBlue
-import com.example.watchsync.ui.theme.Turquoise
 import com.example.watchsync.ui.theme.WatchSyncTheme
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
+
+// Tasarımdaki ana renkler
+private val TEXT_COLOR = Color.White
+private val PRIMARY_GLOW_COLOR = Color(0xFF00F5D4) // Canlı Turkuaz
+private val RED_GLOW_COLOR = Color(0xFFFF5E5B)   // Canlı Kırmızı/Koral
+private val BACKGROUND_COLOR = Color(0xFF0C0C12) // Çok Koyu Lacivert/Siyah
 
 @Composable
 fun LoginScreen(
     onStartClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        // Sinematik gradient arka plan
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            NightBlue,
-                            Color(0xFF000000),
-                            Color(0xFF0A0A1A)
-                        )
-                    )
-                )
-        )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BACKGROUND_COLOR)
+    ) {
+        // Arka plan ağ animasyonu
+        NetworkBackground()
 
-        // Işık efektleri (sinema projektör ışıkları)
-        CinemaLightEffects()
-
-        // Ana içerik
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 32.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(64.dp))
 
-            // Logo - Sinema ve arkadaşlık temalı
-            CinemaFriendshipLogo(
-                modifier = Modifier
-                    .size(140.dp)
-                    .padding(bottom = 32.dp)
-            )
-
-            // Marka ismi
+            // Ana Başlık
             Text(
                 text = "WatchSync",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 52.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Turquoise,
-                modifier = Modifier.padding(bottom = 24.dp)
+                color = TEXT_COLOR,
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 38.sp
+                )
             )
 
-            // Tanıtıcı cümle
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Ana İkon
+            MainIcon(modifier = Modifier.size(180.dp))
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Slogan
             Text(
-                text = "Aynı zevke sahip insanları bul,\nberaber izle, anılar biriktir",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                color = Color.White.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center,
-                lineHeight = 26.sp,
-                modifier = Modifier.padding(bottom = 56.dp)
+                text = "Film & Flört Bir Arada!",
+                color = TEXT_COLOR,
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Zevklerine Uygun İnsanlarla Tanış, Senaryonuzu Yazın .",
+                color = TEXT_COLOR.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
             )
 
-            // Şimdi Başla butonu
-            StartButton(
-                onClick = onStartClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            )
+            Spacer(modifier = Modifier.weight(1f)) // Butonu aşağı iter
 
-            Spacer(modifier = Modifier.weight(1f))
+            // Başla Butonu
+            StartButton(onClick = onStartClick)
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun CinemaLightEffects() {
-    val infiniteTransition = rememberInfiniteTransition(label = "lights")
-    
-    val light1Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.1f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "light1"
-    )
-
-    val light2Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.25f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "light2"
-    )
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Sol üst projektör ışığı
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Turquoise.copy(alpha = light1Alpha),
-                                Color.Transparent
-                            )
-                        ),
-                        radius = size.width * 0.8f,
-                        center = Offset(size.width * 0.2f, size.height * 0.2f)
-                    )
-                }
-        )
-
-        // Sağ üst projektör ışığı
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                ElectricBlue.copy(alpha = light2Alpha),
-                                Color.Transparent
-                            )
-                        ),
-                        radius = size.width * 0.7f,
-                        center = Offset(size.width * 0.8f, size.height * 0.25f)
-                    )
-                }
-        )
-    }
-}
-
-@Composable
-private fun CinemaFriendshipLogo(
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "logo")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-
-    val glowIntensity by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glow"
-    )
-
+private fun StartButton(onClick: () -> Unit) {
     Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        // Dış glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Turquoise.copy(alpha = glowIntensity * 0.2f),
-                                Color.Transparent
-                            )
-                        ),
-                        radius = size.width * 0.7f
-                    )
-                }
-        )
-
-        // Ana logo çizimi
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .scale(pulseScale)
-                .drawBehind {
-                    val centerX = size.width / 2
-                    val centerY = size.height / 2
-                    val baseRadius = size.width * 0.35f
-
-                    // Sinema perdesi (üst kısım)
-                    val curtainHeight = baseRadius * 0.4f
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Turquoise.copy(alpha = 0.8f),
-                                Turquoise.copy(alpha = 0.4f)
-                            )
-                        ),
-                        topLeft = Offset(centerX - baseRadius * 1.2f, centerY - baseRadius * 0.8f),
-                        size = Size(baseRadius * 2.4f, curtainHeight)
-                    )
-
-                    // Perde kıvrımları (3 adet)
-                    for (i in 0..2) {
-                        val xPos = centerX - baseRadius * 0.8f + (i * baseRadius * 0.8f)
-                        drawArc(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Turquoise.copy(alpha = 0.6f),
-                                    Turquoise.copy(alpha = 0.3f)
-                                )
-                            ),
-                            startAngle = 0f,
-                            sweepAngle = 180f,
-                            useCenter = false,
-                            topLeft = Offset(
-                                xPos - baseRadius * 0.2f,
-                                centerY - baseRadius * 0.8f
-                            ),
-                            size = Size(baseRadius * 0.4f, curtainHeight * 0.6f)
-                        )
-                    }
-
-                    // İki kişi silueti (arkadaşlık) - Sol kişi
-                    val person1X = centerX - baseRadius * 0.5f
-                    val person1Y = centerY + baseRadius * 0.2f
-                    
-                    // Sol kişi - vücut
-                    drawCircle(
-                        color = Turquoise,
-                        radius = baseRadius * 0.18f,
-                        center = Offset(person1X, person1Y - baseRadius * 0.15f)
-                    )
-                    // Sol kişi - gövde
-                    drawRect(
-                        color = Turquoise,
-                        topLeft = Offset(
-                            person1X - baseRadius * 0.12f,
-                            person1Y - baseRadius * 0.05f
-                        ),
-                        size = Size(baseRadius * 0.24f, baseRadius * 0.3f)
-                    )
-                    // Sol kişi - bacaklar
-                    drawLine(
-                        color = Turquoise,
-                        start = Offset(person1X - baseRadius * 0.08f, person1Y + baseRadius * 0.25f),
-                        end = Offset(person1X - baseRadius * 0.08f, person1Y + baseRadius * 0.45f),
-                        strokeWidth = baseRadius * 0.12f
-                    )
-                    drawLine(
-                        color = Turquoise,
-                        start = Offset(person1X + baseRadius * 0.08f, person1Y + baseRadius * 0.25f),
-                        end = Offset(person1X + baseRadius * 0.08f, person1Y + baseRadius * 0.45f),
-                        strokeWidth = baseRadius * 0.12f
-                    )
-
-                    // İki kişi silueti - Sağ kişi
-                    val person2X = centerX + baseRadius * 0.5f
-                    val person2Y = centerY + baseRadius * 0.2f
-                    
-                    // Sağ kişi - vücut
-                    drawCircle(
-                        color = ElectricBlue,
-                        radius = baseRadius * 0.18f,
-                        center = Offset(person2X, person2Y - baseRadius * 0.15f)
-                    )
-                    // Sağ kişi - gövde
-                    drawRect(
-                        color = ElectricBlue,
-                        topLeft = Offset(
-                            person2X - baseRadius * 0.12f,
-                            person2Y - baseRadius * 0.05f
-                        ),
-                        size = Size(baseRadius * 0.24f, baseRadius * 0.3f)
-                    )
-                    // Sağ kişi - bacaklar
-                    drawLine(
-                        color = ElectricBlue,
-                        start = Offset(person2X - baseRadius * 0.08f, person2Y + baseRadius * 0.25f),
-                        end = Offset(person2X - baseRadius * 0.08f, person2Y + baseRadius * 0.45f),
-                        strokeWidth = baseRadius * 0.12f
-                    )
-                    drawLine(
-                        color = ElectricBlue,
-                        start = Offset(person2X + baseRadius * 0.08f, person2Y + baseRadius * 0.25f),
-                        end = Offset(person2X + baseRadius * 0.08f, person2Y + baseRadius * 0.45f),
-                        strokeWidth = baseRadius * 0.12f
-                    )
-
-                    // İki kişiyi birleştiren çizgi (arkadaşlık bağı)
-                    drawLine(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Turquoise.copy(alpha = 0.6f),
-                                ElectricBlue.copy(alpha = 0.6f)
-                            )
-                        ),
-                        start = Offset(person1X + baseRadius * 0.2f, person1Y),
-                        end = Offset(person2X - baseRadius * 0.2f, person2Y),
-                        strokeWidth = 3f
-                    )
-                }
-        )
-    }
-}
-
-@Composable
-private fun StartButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "button")
-    val glowIntensity by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glow"
-    )
-
-    Box(
-        modifier = modifier
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Turquoise,
-                        ElectricBlue,
-                        Turquoise
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .clickable(
-                onClick = onClick
-            )
-            .drawBehind {
-                // Glow efekti
-                drawRoundRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Turquoise.copy(alpha = glowIntensity * 0.4f),
-                            Color.Transparent
-                        )
-                    ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(20f, 20f)
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp)) // ÖNCE şekli kırpıyoruz
+            .background( // SONRA arkaplanı veriyoruz
+                Brush.horizontalGradient(
+                    colors = listOf(Color(0xFFF96060), RED_GLOW_COLOR, Color(0xFFF96060))
                 )
-            }
-            .padding(20.dp),
+            )
+            .clickable(onClick = onClick), // En son tıklanabilirlik
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Şimdi Başla",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            color = Color.White
+            text = "Şimdi Başla!",
+            color = TEXT_COLOR,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
         )
     }
+}
+
+@Composable
+private fun MainIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) { 
+        val iconSize = size.minDimension
+        val iconCenter = center
+
+        // Film makarası
+        drawFilmReel(
+            center = Offset(iconCenter.x - iconSize * 0.1f, iconCenter.y),
+            size = iconSize * 0.5f,
+            color = PRIMARY_GLOW_COLOR
+        )
+
+        // Klaket
+        drawClapperboard(
+            center = Offset(iconCenter.x, iconCenter.y - iconSize * 0.2f),
+            width = iconSize * 0.6f,
+            height = iconSize * 0.4f,
+            color = PRIMARY_GLOW_COLOR
+        )
+
+        // Kalp
+        val heartCenter = Offset(iconCenter.x + iconSize * 0.25f, iconCenter.y - iconSize * 0.05f)
+        drawHeart(
+            center = heartCenter,
+            size = iconSize * 0.25f,
+            color = PRIMARY_GLOW_COLOR
+        )
+
+        // Bağlantı Çizgisi
+        drawGlowingLine(
+            start = Offset(iconCenter.x - iconSize * 0.1f, iconCenter.y + iconSize * 0.25f),
+            end = heartCenter,
+            color = PRIMARY_GLOW_COLOR
+        )
+    }
+}
+
+@Composable
+private fun NetworkBackground() {
+    val points = remember {
+        (1..20).map {
+            Offset(
+                x = Random.nextFloat(),
+                y = Random.nextFloat()
+            )
+        }
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) { 
+        val width = size.width
+        val height = size.height
+
+        // Noktaları Çiz
+        points.forEach { point ->
+            val screenPos = Offset(point.x * width, point.y * height)
+            val isRed = Random.nextFloat() > 0.7f
+            val color = if (isRed) RED_GLOW_COLOR else PRIMARY_GLOW_COLOR
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color.copy(alpha = 0.3f), Color.Transparent),
+                    center = screenPos,
+                    radius = 20f
+                ),
+                radius = 20f,
+                center = screenPos
+            )
+            drawCircle(color = color, radius = 5f, center = screenPos)
+        }
+
+        // Noktalar Arası Çizgiler
+        for (i in points.indices) {
+            for (j in (i + 1) until points.size) {
+                val dist = (points[i] - points[j]).getDistance()
+                if (dist < 0.2f) { // Sadece yakın noktaları bağla
+                    drawLine(
+                        color = PRIMARY_GLOW_COLOR.copy(alpha = 0.2f),
+                        start = Offset(points[i].x * width, points[i].y * height),
+                        end = Offset(points[j].x * width, points[j].y * height),
+                        strokeWidth = 1f
+                    )
+                }
+            }
+        }
+    }
+}
+
+// --- ÇİZİM YARDIMCI FONKSİYONLARI ---
+
+private fun DrawScope.drawClapperboard(center: Offset, width: Float, height: Float, color: Color) {
+    val topHeight = height * 0.3f
+    val bottomHeight = height * 0.7f
+    val angle = -15f
+    
+    // Üst parça
+    rotate(angle, pivot = center) {
+        drawRect(color, topLeft = Offset(center.x - width/2, center.y - height/2), size = Size(width, topHeight), style = Stroke(2.dp.toPx()))
+    }
+
+    // Alt parça
+    drawRect(color, topLeft = Offset(center.x - width/2, center.y - height/2 + topHeight), size = Size(width, bottomHeight), style = Stroke(2.dp.toPx()))
+
+    // Çizgiler
+    for (i in 0..4) {
+        val x = (center.x - width/2) + (i * width / 4)
+        drawLine(color, start = Offset(x, center.y - height/2), end = Offset(x - 10, center.y - height/2 + topHeight), strokeWidth = 1.dp.toPx())
+    }
+}
+
+private fun DrawScope.drawFilmReel(center: Offset, size: Float, color: Color) {
+    val radius = size / 2
+    drawCircle(color, radius = radius, center = center, style = Stroke(2.dp.toPx()))
+    drawCircle(color, radius = radius * 0.3f, center = center, style = Stroke(2.dp.toPx()))
+    for (i in 0..5) {
+        val angle = (i * 60f) * (Math.PI / 180f).toFloat()
+        val holeCenter = Offset(center.x + (radius * 0.65f) * cos(angle), center.y + (radius * 0.65f) * sin(angle))
+        drawCircle(color, radius = size * 0.08f, center = holeCenter)
+    }
+}
+
+private fun DrawScope.drawHeart(center: Offset, size: Float, color: Color) {
+    val path = Path().apply {
+        val halfSize = size / 2
+        moveTo(center.x, center.y - halfSize * 0.3f)
+        cubicTo(center.x + halfSize * 0.8f, center.y - halfSize * 0.9f, center.x + halfSize, center.y - halfSize * 0.3f, center.x, center.y + halfSize)
+        cubicTo(center.x - halfSize, center.y - halfSize * 0.3f, center.x - halfSize * 0.8f, center.y - halfSize * 0.9f, center.x, center.y - halfSize * 0.3f)
+        close()
+    }
+    drawPath(path, color, style = Stroke(2.dp.toPx()))
+}
+
+private fun DrawScope.drawGlowingLine(start: Offset, end: Offset, color: Color) {
+    drawLine(color, start, end, strokeWidth = 2.dp.toPx())
 }
 
 @Preview(showBackground = true)
