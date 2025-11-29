@@ -18,13 +18,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.watchsync.data.FakeData
+import com.example.watchsync.data.model.ChatRoom
+import com.example.watchsync.data.model.RoomType
 import com.example.watchsync.data.model.Tweet
 import com.example.watchsync.ui.theme.Turquoise
 
@@ -68,6 +71,7 @@ fun ExploreScreen(
         val initialTweets = when (selectedCategory) {
             "Film" -> FakeData.getTweetsByCategory("Film")
             "Dizi" -> FakeData.getTweetsByCategory("Dizi")
+            "Trend" -> FakeData.getTrendingTweets()
             else -> FakeData.getExploreTweets()
         }
 
@@ -81,6 +85,14 @@ fun ExploreScreen(
                 tweet.realName.lowercase().contains(query) ||
                 (tweet.watchable?.title?.lowercase()?.contains(query) == true)
             }
+        }
+    }
+    
+    val chatRooms = remember(selectedCategory) {
+        if (selectedCategory == "Odalar") {
+            FakeData.getChatRooms()
+        } else {
+            emptyList<ChatRoom>()
         }
     }
 
@@ -130,7 +142,7 @@ fun ExploreScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf("Keşfet", "Film", "Dizi").forEach { category ->
+            listOf("Keşfet", "Film", "Dizi", "Trend", "Odalar").forEach { category ->
                 CategoryChip(
                     text = category,
                     isSelected = selectedCategory == category,
@@ -139,14 +151,20 @@ fun ExploreScreen(
             }
         }
 
-        // Tweet listesi
+        // Tweet veya Oda listesi
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(tweets, key = { it.id }) { tweet ->
-                TweetCard(tweet = tweet)
+            if (selectedCategory == "Odalar") {
+                items(chatRooms, key = { it.id }) { room ->
+                    ChatRoomCard(room = room)
+                }
+            } else {
+                items(tweets, key = { it.id }) { tweet ->
+                    TweetCard(tweet = tweet)
+                }
             }
         }
     }
@@ -196,8 +214,8 @@ private fun TweetCard(tweet: Tweet, modifier: Modifier = Modifier) {
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TweetActionButton(icon = Icons.Default.Favorite, text = tweet.likeCount.toString())
-                    TweetActionButton(icon = Icons.Default.Repeat, text = tweet.retweetCount.toString())
-                    TweetActionButton(icon = Icons.Default.Comment, text = tweet.commentCount.toString())
+                    TweetActionButton(icon = Icons.Filled.Repeat, text = tweet.retweetCount.toString())
+                    TweetActionButton(icon = Icons.AutoMirrored.Filled.Comment, text = tweet.commentCount.toString())
                     Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = Color.White.copy(alpha = 0.5f))
                 }
             }
@@ -215,4 +233,10 @@ private fun TweetActionButton(icon: ImageVector, text: String, onClick: () -> Un
         Icon(imageVector = icon, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
         Text(text, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
     }
+}
+
+@Composable
+private fun ChatRoomCard(room: ChatRoom, modifier: Modifier = Modifier) {
+    // ... (Önceki versiyonda yarım kalmıştı, şimdi tamamlanacak)
+    RoomCard(room = room, modifier = modifier)
 }

@@ -25,9 +25,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,16 +57,20 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.watchsync.data.FakeData
 import com.example.watchsync.data.model.RecommendedWatchable
+import com.example.watchsync.data.model.User
 import com.example.watchsync.data.model.UserComment
 import com.example.watchsync.data.model.Watchable
 import com.example.watchsync.ui.theme.ElectricBlue
 import com.example.watchsync.ui.theme.NightBlue
+import com.example.watchsync.ui.theme.Turquoise
 import com.example.watchsync.ui.theme.WatchSyncTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToProfile: (String) -> Unit = {},
     onNavigateToChat: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     ratings: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
@@ -80,6 +89,9 @@ fun HomeScreen(
     val dramaMovies = remember {
         FakeData.getWatchablesByGenre("Drama")
     }
+    val userProfiles = remember {
+        FakeData.getHomeScreenUsers()
+    }
 
     Box(
         modifier = modifier
@@ -96,19 +108,58 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "WatchSync",
-                        style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                    IconButton(onClick = onNavigateToChat) {
-                        Icon(Icons.Rounded.Email, "Mesajlar", tint = Color.White)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "WatchSync",
+                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                            IconButton(onClick = { /* TODO: Bildirimler */ }) {
+                                Icon(Icons.Rounded.Notifications, "Bildirimler", tint = Color.White)
+                            }
+                            IconButton(onClick = onNavigateToChat) {
+                                Icon(Icons.Rounded.Email, "Mesajlar", tint = Color.White)
+                            }
+                        }
                     }
+                    // Arama çubuğu - Tıklanınca Keşfet'e gitsin
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = { onNavigateToSearch() },
+                        modifier = Modifier.fillMaxWidth().clickable { onNavigateToSearch() },
+                        enabled = false, 
+                        placeholder = {
+                            Text(
+                                text = "Film ve dizi ara...",
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.Search, "Ara", tint = Color.White.copy(alpha = 0.7f))
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            disabledTextColor = Color.White,
+                            focusedBorderColor = Turquoise,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                            disabledBorderColor = Color.White.copy(alpha = 0.3f),
+                            disabledContainerColor = Color(0xFF1A1F2E),
+                            focusedContainerColor = Color(0xFF1A1F2E),
+                            unfocusedContainerColor = Color(0xFF1A1F2E)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
                 }
             }
 
@@ -117,6 +168,34 @@ fun HomeScreen(
                     recommendations = movieRecommendations,
                     onMovieClick = { /* TODO */ }
                 )
+            }
+
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Zevkine Yakın İnsanlar",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(userProfiles, key = { it.id }) { profile ->
+                            ProfileCircleItem(
+                                profile = profile,
+                                onClick = { onNavigateToProfile(profile.id) }
+                            )
+                        }
+                    }
+                }
             }
 
             item {
@@ -340,6 +419,53 @@ fun MoviePosterItem(movie: Watchable, onClick: () -> Unit, modifier: Modifier = 
             contentDescription = movie.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun ProfileCircleItem(
+    profile: User,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.1f else 1f,
+        animationSpec = tween(200),
+        label = "scale"
+    )
+
+    Column(
+        modifier = modifier.width(80.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .scale(scale)
+                .clip(CircleShape)
+                .clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(profile.profileImageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = profile.username,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        Text(
+            text = profile.username,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            color = Color.White,
+            maxLines = 1
         )
     }
 }

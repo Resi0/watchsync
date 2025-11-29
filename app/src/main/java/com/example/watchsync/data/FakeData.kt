@@ -1,7 +1,10 @@
 package com.example.watchsync.data
 
+import com.example.watchsync.data.model.ChatRoom
+import com.example.watchsync.data.model.CreditPlan
 import com.example.watchsync.data.model.RatedWatchable
 import com.example.watchsync.data.model.RecommendedWatchable
+import com.example.watchsync.data.model.RoomType
 import com.example.watchsync.data.model.SuggestedProfile
 import com.example.watchsync.data.model.Tweet
 import com.example.watchsync.data.model.User
@@ -12,10 +15,77 @@ import kotlin.random.Random
 object FakeData {
 
     private val users = listOf(
-        User("user_1", "Ahmet Yılmaz", "Bilim kurgu ve karmaşık senaryolar... Beyin yakan filmler favorim.", "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"),
-        User("user_2", "Ayşe Kaya", "Bir fincan kahve ve sürükleyici bir drama dizisi... Daha ne olsun?", "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"),
-        User("user_3", "Zeynep Arslan", "90'lar komedileri ve kült filmler. Eskiler her zaman daha iyiydi!", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"),
-        User("user_4", "Mehmet Demir", "Aksiyon ve gerilim olmadan bir gün bile geçmez. Bol patlama, bol heyecan!", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80")
+        User(
+            id = "user_1",
+            username = "Ahmet Yılmaz",
+            bio = "Bilim kurgu ve karmaşık senaryolar... Beyin yakan filmler favorim.",
+            profileImageUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            firstName = "Ahmet",
+            lastName = "Yılmaz",
+            nickname = "ahmet_yilmaz",
+            age = 24,
+            credits = 150,
+            city = "Istanbul",
+            country = "Turkey",
+            followerIds = listOf("user_2", "user_3", "user_4"),
+            followingIds = listOf("user_2", "user_3"),
+            profileImages = listOf(
+                "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+            )
+        ),
+        User(
+            id = "user_2",
+            username = "Ayşe Kaya",
+            bio = "Bir fincan kahve ve sürükleyici bir drama dizisi... Daha ne olsun?",
+            profileImageUrl = "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            firstName = "Ayşe",
+            lastName = "Kaya",
+            nickname = "ayse_kaya",
+            age = 22,
+            credits = 200,
+            city = "Ankara",
+            country = "Turkey",
+            followerIds = listOf("user_1", "user_3"),
+            followingIds = listOf("user_1", "user_3", "user_4"),
+            profileImages = listOf(
+                "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+            )
+        ),
+        User(
+            id = "user_3",
+            username = "Zeynep Arslan",
+            bio = "90'lar komedileri ve kült filmler. Eskiler her zaman daha iyiydi!",
+            profileImageUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            firstName = "Zeynep",
+            lastName = "Arslan",
+            nickname = "zeynep_arslan",
+            age = 26,
+            credits = 200,
+            city = "Izmir",
+            country = "Turkey",
+            followerIds = emptyList(),
+            followingIds = listOf("user_1", "user_2"),
+            profileImages = emptyList()
+        ),
+        User(
+            id = "user_4",
+            username = "Mehmet Demir",
+            bio = "Aksiyon ve gerilim olmadan bir gün bile geçmez. Bol patlama, bol heyecan!",
+            profileImageUrl = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+            firstName = "Mehmet",
+            lastName = "Demir",
+            nickname = "mehmet_demir",
+            age = 25,
+            credits = 50,
+            city = "Bursa",
+            country = "Turkey",
+            followerIds = listOf("user_1", "user_2"),
+            followingIds = listOf("user_1"),
+            profileImages = listOf(
+                "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+            )
+        )
     )
 
     private val watchables = listOf(
@@ -45,62 +115,57 @@ object FakeData {
     )
 
     private val allTweets = listOf(
-        Tweet("tweet_1", users[0], "ahmet_yilmaz", "2s", "Inception'ın finali hakkında saatlerce konuşabilirim. Nolan yine yapmış yapacağını! #inception", watchables.find { it.id == "movie_1" }, true, 120, 12, 34),
-        Tweet("tweet_2", users[1], "ayse_kaya", "5dk", "Breaking Bad'i 5. kez bitirdim, hala ilk günkü gibi etkiliyor. Walter White... sen nasıl bir karaktersin. #breakingbad", watchables.find { it.id == "dizi_1" }, false, 560, 88, 102),
-        Tweet("tweet_3", users[2], "zeynep_arslan", "20dk", "Friends izleyip keyiflenmek gibisi yok. Günün stresi anında gidiyor. #friends", watchables.find { it.id == "dizi_4" }, false, 34, 2, 5),
-        Tweet("tweet_4", users[3], "mehmet_demir", "1s", "The Dark Knight'taki Joker performansı... Heath Ledger'ın üzerine tanımam. Sinema tarihinin en iyi kötü karakteri olabilir mi? #joker", watchables.find { it.id == "movie_2" }, false, 982, 150, 210),
-        Tweet("tweet_5", users[0], "ahmet_yilmaz", "3s", "The Mandalorian'ın son bölümü efsaneydi. Grogu çok tatlı değil mi? #starwars", watchables.find { it.id == "dizi_8" }, false, 45, 5, 8),
-        Tweet("tweet_6", users[1], "ayse_kaya", "8s", "Fleabag... 4. duvarı yıkan o anlar... Phoebe Waller-Bridge bir dahi. #fleabag", watchables.find { it.id == "dizi_10" }, true, 250, 40, 60),
-        Tweet("tweet_7", users[3], "mehmet_demir", "1g", "Dune 2'yi IMAX'te izledim. Görüntüler, sesler... Tam bir sinema şöleni. Villeneuve bu işi biliyor. #dune", watchables.find { it.id == "movie_9" }, false, 1200, 300, 450),
-        Tweet("tweet_8", users[2], "zeynep_arslan", "2g", "Pulp Fiction'daki dans sahnesi... Sinema tarihinin en ikonik anlarından. #tarantino", watchables.find { it.id == "movie_10" }, false, 78, 15, 22),
-        Tweet("tweet_9", users[0], "ahmet_yilmaz", "3g", "Black Mirror'ın yeni sezonu yine beyin yaktı. Her bölümü ayrı bir film gibi. #netflix", watchables.find { it.id == "dizi_6" }, false, 450, 60, 95),
-        Tweet("tweet_10", users[1], "ayse_kaya", "4g", "Chernobyl... İzlerken nefesim kesildi. İnsan hatasının ne kadar büyük felaketlere yol açabileceğinin kanıtı. #hbo", watchables.find { it.id == "dizi_12" }, false, 880, 120, 180),
-        Tweet("tweet_11", users[3], "mehmet_demir", "5g", "The Boys dizisi süper kahraman işlerine farklı bir bakış açısı getiriyor. Sert, komik ve acımasız. #theboys", watchables.find { it.id == "dizi_11" }, true, 620, 90, 130)
+        Tweet("tweet_1", users[0], "ahmet_yilmaz", "2sa önce", "Inception'ın finali hakkında saatlerce konuşabilirim. Nolan yine yapmış yapacağını! #inception", watchables[0], false, 245, 12, 34),
+        Tweet("tweet_2", users[1], "ayse_kaya", "5sa önce", "Breaking Bad finali hala beni etkiliyor. Walter White karakteri mükemmel!", watchables[2], true, 189, 8, 22)
     )
 
     private val allComments = listOf(
-        UserComment("comment_1", users[0], watchables.find { it.id == "movie_2" }, "Joker rolü efsaneydi!", "2 saat önce"),
-        UserComment("comment_2", users[1], watchables.find { it.id == "movie_10" }, "Tarantino yine döktürmüş.", "5 saat önce"),
-        UserComment("comment_3", users[2], watchables.find { it.id == "dizi_2" }, "Ejderhalar... daha ne olsun!", "1 gün önce")
+        UserComment("comment_1", users[0], watchables[1], "Joker rolü efsaneydi!", "2 saat önce"),
+        UserComment("comment_2", users[1], watchables[0], "Beyin yakan filmler...", "5 saat önce")
+    )
+
+    private val chatRooms = listOf(
+        ChatRoom("room_1", "Game of Thrones Finali Tartışma Odası", "Spoiler içerir!", RoomType.VOICE_CHAT, watchables.find { it.id == "dizi_2" }, "Sezon 8, Bölüm 6", 45, true),
+        ChatRoom("room_2", "Friends ile Akşam Keyfi", "1. sezondan başlıyoruz!", RoomType.WATCH_TOGETHER, null, "S01E01", 12, false)
+    )
+
+    private val creditPlans = listOf(
+        CreditPlan("plan_1", "Başlangıç Paketi", 100, 0, 49.99, "TL"),
+        CreditPlan("plan_2", "Popüler Paket", 500, 50, 199.99, "TL", true),
+        CreditPlan("plan_3", "Mega Paket", 1000, 150, 349.99, "TL"),
+        CreditPlan("plan_4", "Ultra Paket", 2500, 500, 749.99, "TL")
     )
 
     fun getOnboardingLevels(): List<List<Watchable>> = listOf(watchables.shuffled().take(8), watchables.shuffled().take(8), watchables.shuffled().take(8))
-
     fun getHomeScreenUsers(): List<User> = users.shuffled()
-
-    fun getHomeScreenRecommendations(ratings: Map<String, Int>): List<RecommendedWatchable> {
-        if (ratings.isEmpty()) return watchables.shuffled().take(5).map { RecommendedWatchable(it, "Popüler olduğu için %${Random.nextInt(80, 96)} uyumlu") }
-
-        val likedGenres = ratings.filter { it.value == 5 }.mapNotNull { watchables.find { w -> w.id == it.key }?.genres }.flatten()
-        val dislikedGenres = ratings.filter { it.value == 1 }.mapNotNull { watchables.find { w -> w.id == it.key }?.genres }.flatten()
-
-        val oylananlar = ratings.keys
-
-        return watchables
-            .filter { it.id !in oylananlar }
-            .map { watchable ->
-                var score = 70 // Taban uyum puanı
-                score += watchable.genres.count { it in likedGenres } * 10 // Beğenilen her tür için +10 puan
-                score -= watchable.genres.count { it in dislikedGenres } * 15 // Beğenilmeyen her tür için -15 puan
-                val finalScore = score.coerceIn(40, 99) // Puanı 40-99 arasında sınırla
-                val reason = if (finalScore > 85) "Zevklerinize çok uygun!" else "Buna bir göz atın!"
-                RecommendedWatchable(watchable, "%$finalScore uyumlu - $reason")
-            }
-            .sortedByDescending { recommended -> recommended.reason.filter { it.isDigit() }.toIntOrNull() ?: 0 }
-            .take(10)
-    }
-
+    fun getHomeScreenRecommendations(ratings: Map<String, Int>): List<RecommendedWatchable> = watchables.shuffled().map { RecommendedWatchable(it, "Popüler olduğu için") }
     fun getExploreTweets(): List<Tweet> = allTweets.shuffled()
-
+    fun getTrendingTweets(): List<Tweet> = allTweets.sortedByDescending { it.likeCount }
     fun getTweetsByCategory(category: String): List<Tweet> = allTweets.filter { it.watchable?.type == category }.shuffled()
-
-    fun getSuggestedProfiles(): List<SuggestedProfile> = users.shuffled().map { user -> SuggestedProfile(user, (22..35).random(), (75..95).random(), watchables.shuffled().take(3)) }
-
+    fun getSuggestedProfiles(): List<SuggestedProfile> = users.shuffled().map { user -> 
+            SuggestedProfile(
+                user = user,
+                age = (22..35).random(),
+                compatibilityPercentage = (75..95).random(),
+                commonWatchables = watchables.shuffled().take(3)
+            )
+        }
     fun findUserById(id: String): User? = users.find { it.id == id }
-
-    fun getRatingsForUser(userId: String): List<RatedWatchable> = watchables.shuffled().take((5..8).random()).map { RatedWatchable(it, (4..5).random()) }
-    
+    fun getRatingsForUser(userId: String): List<RatedWatchable> = emptyList()
     fun getFollowedUsersComments(): List<UserComment> = allComments.shuffled()
-
     fun getWatchablesByGenre(genre: String): List<Watchable> = watchables.filter { it.genres.contains(genre) }.shuffled()
+    fun getFollowerCount(userId: String): Int = users.find { it.id == userId }?.followerIds?.size ?: 0
+    fun getFollowingCount(userId: String): Int = users.find { it.id == userId }?.followingIds?.size ?: 0
+    fun getFavoriteWatchables(userId: String): List<Watchable> = watchables.shuffled().take(5)
+    fun getSavedWatchables(userId: String): List<Watchable> = watchables.shuffled().take(10)
+    fun getTopMatches(userId: String): List<Watchable> = watchables.shuffled().take(5)
+    fun getFollowers(userId: String): List<User> = users.filter { it.id in users.find { u -> u.id == userId }?.followerIds.orEmpty() }
+    fun getFollowing(userId: String): List<User> = users.filter { it.id in users.find { u -> u.id == userId }?.followingIds.orEmpty() }
+    fun getChatRooms(): List<ChatRoom> = chatRooms
+    fun getLikedMeUsers(): List<User> = users.shuffled().take(3)
+    fun getMyLikedUsers(): List<User> = users.shuffled().take(3)
+    fun getAllWatchables(): List<Watchable> = watchables
+    
+    // EKLENEN FONKSİYON
+    fun getCreditPlans(): List<CreditPlan> = creditPlans
 }

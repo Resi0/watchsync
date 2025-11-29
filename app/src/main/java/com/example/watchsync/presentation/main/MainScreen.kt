@@ -24,8 +24,11 @@ import com.example.watchsync.navigation.BottomNavItem
 import com.example.watchsync.presentation.chat.ChatListScreen
 import com.example.watchsync.presentation.explore.ExploreScreen
 import com.example.watchsync.presentation.home.HomeScreen
+import com.example.watchsync.presentation.library.ShowDetailScreen
+import com.example.watchsync.presentation.likes.LikesScreen
 import com.example.watchsync.presentation.matches.MatchesScreen
 import com.example.watchsync.presentation.profile.ProfileScreen
+import com.example.watchsync.presentation.store.StoreScreen
 import com.example.watchsync.ui.theme.ElectricBlue
 import com.example.watchsync.ui.theme.Turquoise
 
@@ -122,25 +125,44 @@ fun MainScreen(
             // Eşleşmeler ekranı
             composable(BottomNavItem.Matches.route) {
                 MatchesScreen(
-                    onNavigateToProfile = onNavigateToProfile
+                    onNavigateToStore = {
+                        navController.navigate("store") {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
-            // Bildirimler ekranı
-            composable(BottomNavItem.Notifications.route) {
-                // Şimdilik boş
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Bildirimler",
-                        color = Color.White
-                    )
-                }
+            // Mağaza ekranı
+            composable("store") {
+                StoreScreen()
+            }
+            // Beğeniler ekranı
+            composable(BottomNavItem.Likes.route) {
+                LikesScreen()
             }
             // Profil ekranı
             composable(BottomNavItem.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    ratings = ratings,
+                    onNavigateToShowDetail = { watchable ->
+                        navController.navigate("show_detail/${watchable.id}") {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+            // Dizi/Film Detay Ekranı
+            composable("show_detail/{watchableId}") { backStackEntry ->
+                val watchableId = backStackEntry.arguments?.getString("watchableId") ?: ""
+                val watchable = com.example.watchsync.data.FakeData.getAllWatchables().find { it.id == watchableId }
+                if (watchable != null) {
+                    ShowDetailScreen(
+                        show = watchable,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
             // Sohbet listesi ekranı
             composable("chat_list") {

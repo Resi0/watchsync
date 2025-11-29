@@ -6,6 +6,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class BottomNavItem(
@@ -31,10 +32,10 @@ sealed class BottomNavItem(
         icon = Icons.Rounded.Favorite
     )
 
-    object Notifications : BottomNavItem(
-        route = "notifications",
-        title = "Bildirimler",
-        icon = Icons.Rounded.Notifications
+    object Likes : BottomNavItem(
+        route = "likes",
+        title = "Beğeniler",
+        icon = Icons.Rounded.ThumbUp
     )
 
     object Profile : BottomNavItem(
@@ -44,7 +45,6 @@ sealed class BottomNavItem(
     )
 
     companion object {
-        val items = listOf(Home, Explore, Matches, Notifications, Profile)
+        val items = listOf(Home, Explore, Matches, Likes, Profile)
     }
 }
-
